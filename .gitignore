@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Expo / React Native frontend
+motowrap-frontend/node_modules/
+motowrap-frontend/.expo/
+motowrap-frontend/dist/

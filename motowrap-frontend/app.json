@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "MotoWrap",
+    "slug": "motowrap-frontend",
+    "scheme": "motowrap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router",
+      "expo-location"
+    ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:8080",
+      "gpsSubmissionIntervalMs": 10000,
+      "gpsWatchIntervalMs": 5000
+    }
+  }
+}

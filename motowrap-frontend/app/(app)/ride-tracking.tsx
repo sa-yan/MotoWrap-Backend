@@ -28,6 +28,7 @@ export default function RideTrackingScreen() {
   const lastSubmitRef = useRef<number>(0);
 
   const { start, end, pushGps } = useRideActions();
+  const pushGpsPoint = pushGps.mutate;
   const { permissionGranted, currentPoint, route, resetRoute } = useLocationTracking(Boolean(activeRideId));
 
   useEffect(() => {
@@ -41,13 +42,13 @@ export default function RideTrackingScreen() {
     }
 
     lastSubmitRef.current = now;
-    pushGps.mutate({
+    pushGpsPoint({
       latitude: currentPoint.latitude,
       longitude: currentPoint.longitude,
       altitude: currentPoint.altitude,
       accuracy: currentPoint.accuracy,
     });
-  }, [activeRideId, currentPoint, pushGps]);
+  }, [activeRideId, currentPoint, pushGpsPoint]);
 
   const distanceKm = useMemo(() => {
     if (route.length < 2) return 0;

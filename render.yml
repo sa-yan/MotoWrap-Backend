@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: motowrap-backend
+    runtime: java
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -jar target/MotoWrap-0.1.0.jar
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://db.delarkdqmohemjojksez.supabase.co:5432/postgres
+      - key: SPRING_DATASOURCE_USERNAME
+        value: postgres
+      - key: SPRING_DATASOURCE_PASSWORD
+        value: Sayan_hello_mondal@3338
+      - key: JWT_SECRET
+        value: 9b169774b57a098d7b3dd032f957921117fc0d923847c2471e233d517168ab50c051a99661bb371af61a05e7a8108afe16341fc0425169496d601dff97c46e6d

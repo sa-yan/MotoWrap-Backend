@@ -67,6 +67,31 @@ public class RideController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/gps/batch")
+    public ResponseEntity<?> addGpsPointsBatch(Authentication authentication,
+                                               @RequestBody List<GpsPointRequest> points) {
+        Long userId = userRepository.findByEmail(authentication.getName()).getId();
+        int saved = 0;
+        for (GpsPointRequest point : points) {
+            try {
+                rideService.addGpsPoint(
+                        userId,
+                        point.getLatitude(),
+                        point.getLongitude(),
+                        point.getAltitude(),
+                        point.getAccuracy()
+                );
+                saved++;
+            } catch (Exception e) {
+                System.out.println("Skipping bad GPS point: " + e.getMessage());
+            }
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("saved", saved);
+        response.put("total", points.size());
+        return ResponseEntity.ok(response);
+    }
+
     // Get all rides for user
     @GetMapping
     public ResponseEntity<?> getRides(Authentication authentication) {

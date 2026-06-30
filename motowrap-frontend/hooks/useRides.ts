@@ -1,5 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addGpsPoint, endRide, getRideDetail, getRides, startRide } from '@/api/rides';
+import { addGpsPoint, endRide, getActiveRide, getRideDetail, getRides, getUserStats, startRide } from '@/api/rides';
+
+export const useActiveRide = () =>
+  useQuery({
+    queryKey: ['rides', 'active'],
+    queryFn: getActiveRide,
+  });
+
+export const useRideStats = () =>
+  useQuery({
+    queryKey: ['rides', 'stats'],
+    queryFn: getUserStats,
+  });
 
 export const useRideHistory = () =>
   useQuery({
@@ -21,6 +33,7 @@ export const useRideActions = () => {
     mutationFn: startRide,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rides'] });
+      queryClient.invalidateQueries({ queryKey: ['rides', 'active'] });
     },
   });
 
@@ -28,6 +41,8 @@ export const useRideActions = () => {
     mutationFn: endRide,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rides'] });
+      queryClient.invalidateQueries({ queryKey: ['rides', 'active'] });
+      queryClient.invalidateQueries({ queryKey: ['rides', 'stats'] });
     },
   });
 

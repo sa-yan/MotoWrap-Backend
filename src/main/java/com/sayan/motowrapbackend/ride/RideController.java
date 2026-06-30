@@ -92,6 +92,22 @@ public class RideController {
         return ResponseEntity.ok(response);
     }
 
+    // Get lifetime stats for the authenticated user
+    @GetMapping("/stats")
+    public ResponseEntity<?> getUserStats(Authentication authentication) {
+        Long userId = userRepository.findByEmail(authentication.getName()).getId();
+        return ResponseEntity.ok(rideService.getUserStats(userId));
+    }
+
+    // Get the current active ride (used by frontend on app resume)
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveRide(Authentication authentication) {
+        Long userId = userRepository.findByEmail(authentication.getName()).getId();
+        return rideService.getActiveRide(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     // Get all rides for user
     @GetMapping
     public ResponseEntity<?> getRides(Authentication authentication) {

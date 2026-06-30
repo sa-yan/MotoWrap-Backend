@@ -38,6 +38,9 @@ public class Ride {
     private Double averageSpeed = 0.0;
 
     @Column
+    private Double maxSpeed = 0.0;
+
+    @Column
     private String status; // "active" or "completed"
 
     @Column(name = "created_at", nullable = false, updatable = false)

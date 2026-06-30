@@ -2,13 +2,18 @@ package com.sayan.motowrapbackend.ride;
 
 import com.sayan.motowrapbackend.auth.User;
 import com.sayan.motowrapbackend.auth.UserRepository;
+import com.sayan.motowrapbackend.exception.ActiveRideConflictException;
+import com.sayan.motowrapbackend.exception.RideNotFoundException;
+import com.sayan.motowrapbackend.exception.UserNotFoundException;
 import com.sayan.motowrapbackend.util.HaversineCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class RideService {
@@ -24,7 +29,11 @@ public class RideService {
     // Start a new ride
     public Ride startRide(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        rideRepository.findByUserAndStatus(user, "active").ifPresent(r -> {
+            throw new ActiveRideConflictException("You already have an active ride. End it before starting a new one.");
+        });
 
         Ride ride = new Ride();
         ride.setUser(user);
@@ -33,13 +42,22 @@ public class RideService {
         return rideRepository.save(ride);
     }
 
+    // Get the current active ride (for app resume)
+    public Optional<RideDTO> getActiveRide(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return rideRepository.findByUserAndStatus(user, "active")
+                .map(this::convertToDTO);
+    }
+
     // End the active ride and calculate stats
     public Ride endRide(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         Ride ride = rideRepository.findByUserAndStatus(user, "active")
-                .orElseThrow(() -> new RuntimeException("No active ride found"));
+                .orElseThrow(() -> new RideNotFoundException("No active ride found"));
 
         ride.setEndTime(LocalDateTime.now());
         ride.setStatus("completed");
@@ -48,18 +66,18 @@ public class RideService {
         long duration = ChronoUnit.SECONDS.between(ride.getStartTime(), ride.getEndTime());
         ride.setDurationSeconds(duration);
 
-        // Get all GPS points and calculate distance
+        // Get all GPS points and calculate distance + max speed
         List<GpsPoint> points = gpsPointRepository.findByRideOrderByTimestampAsc(ride);
         if (points.size() >= 2) {
             double totalDistance = calculateDistanceFromPoints(points);
             ride.setDistanceKm(totalDistance);
 
-            // Calculate average speed (km/h)
             double durationHours = duration / 3600.0;
             if (durationHours > 0) {
-                double avgSpeed = totalDistance / durationHours;
-                ride.setAverageSpeed(avgSpeed);
+                ride.setAverageSpeed(totalDistance / durationHours);
             }
+
+            ride.setMaxSpeed(calculateMaxSpeed(points));
         }
 
         return rideRepository.save(ride);
@@ -69,10 +87,10 @@ public class RideService {
     public GpsPoint addGpsPoint(Long userId, double latitude, double longitude,
                                 double altitude, double accuracy) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         Ride ride = rideRepository.findByUserAndStatus(user, "active")
-                .orElseThrow(() -> new RuntimeException("No active ride found"));
+                .orElseThrow(() -> new RideNotFoundException("No active ride found"));
 
         GpsPoint point = new GpsPoint();
         point.setRide(ride);
@@ -88,7 +106,7 @@ public class RideService {
     // Get all rides for a user
     public List<RideDTO> getUserRides(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         return rideRepository.findByUserOrderByStartTimeDesc(user)
                 .stream()
@@ -99,10 +117,10 @@ public class RideService {
     // Get single ride with all GPS points for map
     public RideDetailDTO getRideDetail(Long rideId, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         Ride ride = rideRepository.findByIdAndUser(rideId, user)
-                .orElseThrow(() -> new RuntimeException("Ride not found"));
+                .orElseThrow(() -> new RideNotFoundException("Ride not found or does not belong to you"));
 
         List<GpsPoint> points = gpsPointRepository.findByRideOrderByTimestampAsc(ride);
 
@@ -113,6 +131,7 @@ public class RideService {
         dto.setDistanceKm(ride.getDistanceKm());
         dto.setDurationSeconds(ride.getDurationSeconds());
         dto.setAverageSpeed(ride.getAverageSpeed());
+        dto.setMaxSpeed(ride.getMaxSpeed());
         dto.setStatus(ride.getStatus());
         dto.setRoute(points.stream()
                 .map(p -> new GpsPointDTO(p.getLatitude(), p.getLongitude(), p.getAltitude(), p.getTimestamp()))
@@ -120,6 +139,25 @@ public class RideService {
         System.out.println("GPS points found: " + points.size());
         System.out.println("First point: " + (points.isEmpty() ? "none" : points.get(0).getLatitude() + ", " + points.get(0).getLongitude()));
         return dto;
+    }
+
+    // Get lifetime stats for a user
+    public RideStatsDTO getUserStats(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        List<Ride> completed = rideRepository.findByUserOrderByStartTimeDesc(user)
+                .stream()
+                .filter(r -> "completed".equals(r.getStatus()))
+                .collect(Collectors.toList());
+
+        long totalRides = completed.size();
+        double totalDistance = completed.stream().mapToDouble(r -> r.getDistanceKm() != null ? r.getDistanceKm() : 0).sum();
+        long totalDuration = completed.stream().mapToLong(r -> r.getDurationSeconds() != null ? r.getDurationSeconds() : 0).sum();
+        double maxSpeed = completed.stream().mapToDouble(r -> r.getMaxSpeed() != null ? r.getMaxSpeed() : 0).max().orElse(0);
+        double avgSpeed = totalDuration > 0 ? totalDistance / (totalDuration / 3600.0) : 0;
+
+        return new RideStatsDTO(totalRides, totalDistance, totalDuration, avgSpeed, maxSpeed);
     }
 
     // Helper: Calculate total distance from GPS points
@@ -136,6 +174,22 @@ public class RideService {
         return totalDistance;
     }
 
+    // Helper: Calculate max speed (km/h) across consecutive GPS point segments
+    private double calculateMaxSpeed(List<GpsPoint> points) {
+        return IntStream.range(0, points.size() - 1)
+                .mapToDouble(i -> {
+                    GpsPoint a = points.get(i);
+                    GpsPoint b = points.get(i + 1);
+                    double distKm = HaversineCalculator.calculateDistance(
+                            a.getLatitude(), a.getLongitude(),
+                            b.getLatitude(), b.getLongitude());
+                    double timeHours = ChronoUnit.SECONDS.between(a.getTimestamp(), b.getTimestamp()) / 3600.0;
+                    return timeHours > 0 ? distKm / timeHours : 0;
+                })
+                .max()
+                .orElse(0);
+    }
+
     // Helper: Convert Ride to DTO
     private RideDTO convertToDTO(Ride ride) {
         RideDTO dto = new RideDTO();
@@ -145,6 +199,7 @@ public class RideService {
         dto.setDistanceKm(ride.getDistanceKm());
         dto.setDurationSeconds(ride.getDurationSeconds());
         dto.setAverageSpeed(ride.getAverageSpeed());
+        dto.setMaxSpeed(ride.getMaxSpeed());
         dto.setStatus(ride.getStatus());
         return dto;
     }

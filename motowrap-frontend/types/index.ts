@@ -26,7 +26,16 @@ export interface Ride {
   distanceKm: number;
   durationSeconds: number;
   averageSpeed: number;
+  maxSpeed: number;
   status: string;
+}
+
+export interface UserRideStats {
+  totalRides: number;
+  totalDistanceKm: number;
+  totalDurationSeconds: number;
+  overallAvgSpeed: number;
+  overallMaxSpeed: number;
 }
 
 export interface RidePoint {
@@ -52,6 +61,7 @@ export interface EndRideResponse {
   distanceKm: number;
   durationSeconds: number;
   averageSpeed: number;
+  maxSpeed: number;
   endTime: string;
 }
 

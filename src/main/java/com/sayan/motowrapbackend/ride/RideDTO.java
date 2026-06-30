@@ -16,6 +16,7 @@ public class RideDTO {
     private Double distanceKm;
     private Long durationSeconds;
     private Double averageSpeed;
+    private Double maxSpeed;
     private String status;
 }
 
@@ -29,8 +30,20 @@ class RideDetailDTO {
     private Double distanceKm;
     private Long durationSeconds;
     private Double averageSpeed;
+    private Double maxSpeed;
     private String status;
     private List<GpsPointDTO> route;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+class RideStatsDTO {
+    private long totalRides;
+    private double totalDistanceKm;
+    private long totalDurationSeconds;
+    private double overallAvgSpeed;
+    private double overallMaxSpeed;
 }
 
 @Data

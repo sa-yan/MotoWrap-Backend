@@ -18,11 +18,18 @@ export default function RideHistoryScreen() {
       keyExtractor={(item) => String(item.id)}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
       renderItem={({ item }) => (
-        <RideCard ride={item} onPress={() => router.push({ pathname: '/(app)/ride-detail', params: { rideId: item.id } })} />
+        <RideCard
+          ride={item}
+          onPress={() =>
+            router.push({ pathname: '/(app)/ride-detail', params: { rideId: item.id } })
+          }
+        />
       )}
       ListEmptyComponent={
-        <View style={{ paddingTop: 64 }}>
-          <Text style={{ textAlign: 'center' }}>No rides found yet.</Text>
+        <View style={{ paddingTop: 64, alignItems: 'center' }}>
+          <Text variant="bodyLarge" style={{ color: '#888' }}>
+            No rides yet. Start your first ride!
+          </Text>
         </View>
       }
     />

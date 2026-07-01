@@ -45,6 +45,7 @@ public class RideController {
         response.put("distanceKm", ride.getDistanceKm());
         response.put("durationSeconds", ride.getDurationSeconds());
         response.put("averageSpeed", ride.getAverageSpeed());
+        response.put("maxSpeed", ride.getMaxSpeed());
         response.put("endTime", ride.getEndTime());
 
         return ResponseEntity.ok(response);
@@ -58,7 +59,8 @@ public class RideController {
         GpsPoint point = rideService.addGpsPoint(userId, request.getLatitude(),
                 request.getLongitude(),
                 request.getAltitude(),
-                request.getAccuracy());
+                request.getAccuracy(),
+                request.getSpeed());
 
         Map<String, Object> response = new HashMap<>();
         response.put("pointId", point.getId());
@@ -79,7 +81,8 @@ public class RideController {
                         point.getLatitude(),
                         point.getLongitude(),
                         point.getAltitude(),
-                        point.getAccuracy()
+                        point.getAccuracy(),
+                        point.getSpeed()
                 );
                 saved++;
             } catch (Exception e) {
@@ -131,11 +134,13 @@ public class RideController {
         public Double longitude;
         public Double altitude;
         public Double accuracy;
+        public Double speed; // km/h from device chipset
 
         public Double getLatitude() { return latitude; }
         public Double getLongitude() { return longitude; }
         public Double getAltitude() { return altitude; }
         public Double getAccuracy() { return accuracy; }
+        public Double getSpeed() { return speed; }
     }
 }
 

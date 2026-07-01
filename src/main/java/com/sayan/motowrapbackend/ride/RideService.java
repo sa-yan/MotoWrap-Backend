@@ -17,6 +17,8 @@ import java.util.stream.IntStream;
 
 @Service
 public class RideService {
+    private static final double MAX_ACCURACY_METERS = 25.0;
+    private static final double MAX_SPEED_KMH = 250.0;
     @Autowired
     private RideRepository rideRepository;
 
@@ -66,8 +68,9 @@ public class RideService {
         long duration = ChronoUnit.SECONDS.between(ride.getStartTime(), ride.getEndTime());
         ride.setDurationSeconds(duration);
 
-        // Get all GPS points and calculate distance + max speed
-        List<GpsPoint> points = gpsPointRepository.findByRideOrderByTimestampAsc(ride);
+        // Get all GPS points, filter low-accuracy fixes, then calculate stats
+        List<GpsPoint> allPoints = gpsPointRepository.findByRideOrderByTimestampAsc(ride);
+        List<GpsPoint> points = filterByAccuracy(allPoints);
         if (points.size() >= 2) {
             double totalDistance = calculateDistanceFromPoints(points);
             ride.setDistanceKm(totalDistance);
@@ -85,7 +88,7 @@ public class RideService {
 
     // Add GPS point to active ride
     public GpsPoint addGpsPoint(Long userId, double latitude, double longitude,
-                                double altitude, double accuracy) {
+                                Double altitude, Double accuracy, Double speed) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -98,6 +101,7 @@ public class RideService {
         point.setLongitude(longitude);
         point.setAltitude(altitude);
         point.setAccuracy(accuracy);
+        point.setSpeed(speed);
         point.setTimestamp(LocalDateTime.now());
 
         return gpsPointRepository.save(point);
@@ -174,8 +178,31 @@ public class RideService {
         return totalDistance;
     }
 
-    // Helper: Calculate max speed (km/h) across consecutive GPS point segments
+    // Helper: Keep only points with accuracy <= MAX_ACCURACY_METERS
+    private List<GpsPoint> filterByAccuracy(List<GpsPoint> points) {
+        return points.stream()
+                .filter(p -> p.getAccuracy() != null && p.getAccuracy() <= MAX_ACCURACY_METERS)
+                .collect(Collectors.toList());
+    }
+
+    // Helper: Calculate max speed (km/h).
+    // Prefers chipset-reported speed per point (more accurate, especially at low speeds).
+    // Falls back to haversine segment speed for points that have no chipset speed.
     private double calculateMaxSpeed(List<GpsPoint> points) {
+        // If most points have chipset speed, use MAX(speed) directly
+        long withChipsetSpeed = points.stream()
+                .filter(p -> p.getSpeed() != null && p.getSpeed() > 0 && p.getSpeed() <= MAX_SPEED_KMH)
+                .count();
+
+        if (withChipsetSpeed > points.size() / 2) {
+            return points.stream()
+                    .filter(p -> p.getSpeed() != null && p.getSpeed() <= MAX_SPEED_KMH)
+                    .mapToDouble(GpsPoint::getSpeed)
+                    .max()
+                    .orElse(0);
+        }
+
+        // Fallback: haversine segment speed with spike filter
         return IntStream.range(0, points.size() - 1)
                 .mapToDouble(i -> {
                     GpsPoint a = points.get(i);
@@ -184,7 +211,9 @@ public class RideService {
                             a.getLatitude(), a.getLongitude(),
                             b.getLatitude(), b.getLongitude());
                     double timeHours = ChronoUnit.SECONDS.between(a.getTimestamp(), b.getTimestamp()) / 3600.0;
-                    return timeHours > 0 ? distKm / timeHours : 0;
+                    if (timeHours <= 0) return 0;
+                    double speedKmh = distKm / timeHours;
+                    return speedKmh <= MAX_SPEED_KMH ? speedKmh : 0;
                 })
                 .max()
                 .orElse(0);

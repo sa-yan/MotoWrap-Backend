@@ -32,6 +32,9 @@ public class GpsPoint {
     @Column
     private Double accuracy;
 
+    @Column
+    private Double speed; // km/h, reported by device GPS chipset
+
     @Column(nullable = false)
     private LocalDateTime timestamp;
 

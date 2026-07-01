@@ -7,4 +7,5 @@ import java.util.List;
 @Repository
 public interface GpsPointRepository extends JpaRepository<GpsPoint, Long> {
     List<GpsPoint> findByRideOrderByTimestampAsc(Ride ride);
+    void deleteByRide(Ride ride);
 }

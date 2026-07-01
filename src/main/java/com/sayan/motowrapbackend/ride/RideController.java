@@ -128,6 +128,18 @@ public class RideController {
         return ResponseEntity.ok(rideDetail);
     }
 
+    // Delete a ride and its GPS points
+    @DeleteMapping("/{rideId}")
+    public ResponseEntity<?> deleteRide(Authentication authentication,
+                                        @PathVariable Long rideId) {
+        Long userId = userRepository.findByEmail(authentication.getName()).getId();
+        rideService.deleteRide(rideId, userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "Ride deleted");
+        return ResponseEntity.ok(response);
+    }
+
     // Request DTO for GPS points
     public static class GpsPointRequest {
         public Double latitude;

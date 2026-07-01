@@ -145,6 +145,18 @@ public class RideService {
         return dto;
     }
 
+    // Delete a ride and its GPS points
+    public void deleteRide(Long rideId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        Ride ride = rideRepository.findByIdAndUser(rideId, user)
+                .orElseThrow(() -> new RideNotFoundException("Ride not found or does not belong to you"));
+
+        gpsPointRepository.deleteByRide(ride);
+        rideRepository.delete(ride);
+    }
+
     // Get lifetime stats for a user
     public RideStatsDTO getUserStats(Long userId) {
         User user = userRepository.findById(userId)

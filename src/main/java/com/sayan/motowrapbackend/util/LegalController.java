@@ -24,15 +24,37 @@ public class LegalController {
             </style>
             """;
 
+    private static String page(String title, String body) {
+        return """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>%s</title>
+                %s
+                </head>
+                <body>
+                %s
+                </body>
+                </html>
+                """.formatted(title, STYLE, body);
+    }
+
     @GetMapping(value = "/privacy", produces = MediaType.TEXT_HTML_VALUE)
     public String privacyPolicy() {
-        return "<title>MotoWrap Privacy Policy</title>" + STYLE + """
+        String body = """
                 <h1>MotoWrap Privacy Policy</h1>
                 <p class="muted">Effective date: July 2, 2026</p>
 
                 <p>MotoWrap is a motorcycle ride-tracking app developed and operated by a solo
                 developer, Sayan Mondal. This policy explains what data MotoWrap collects,
                 why, and what happens to it.</p>
+
+                <h2>Who this app is for</h2>
+                <p>MotoWrap is not directed at children under 13, and we do not knowingly
+                collect data from anyone under that age. If you believe a child has provided
+                us data, contact us and we will delete it.</p>
 
                 <h2>Data we collect</h2>
                 <ul>
@@ -43,13 +65,17 @@ public class LegalController {
                   <li><strong>Ride and location data:</strong> precise GPS location traces
                       (latitude, longitude, altitude, and speed), recorded <strong>only while you are
                       actively recording a ride</strong>. MotoWrap does not track your location in the
-                      background or at any other time.</li>
+                      background or at any other time. Location is only collected if you grant the
+                      location permission on your device, and you can revoke that permission at any
+                      time in your device settings, which will prevent further collection.</li>
                 </ul>
 
                 <h2>Where your data is stored</h2>
                 <p>Your data is stored in a PostgreSQL database hosted by Supabase, and the
                 MotoWrap API is served via Render. These hosting providers process your data
-                on our behalf to run the service.</p>
+                on our behalf to run the service. Data is encrypted in transit (HTTPS/TLS)
+                between your device and our servers, and encrypted at rest by our hosting
+                provider.</p>
 
                 <h2>Map tiles</h2>
                 <p>Maps in the app are loaded from OpenStreetMap tile servers. When map tiles
@@ -68,36 +94,51 @@ public class LegalController {
                 <h2>Data retention</h2>
                 <p>Your data is retained until you delete your account. When you delete your
                 account, your profile, motorcycles, rides, and all GPS location data are
-                permanently removed.</p>
+                removed from our active database immediately. Routine infrastructure backups
+                held by our hosting providers may retain a copy for a limited period afterward
+                before being purged in the normal backup rotation.</p>
+
+                <h2>Your rights</h2>
+                <p>You can ask us at any time to access, correct, or export a copy of your
+                data, or to delete it. Contact us using the details below and we will act on
+                your request promptly.</p>
 
                 <h2>Deleting your account and data</h2>
                 <p>You can delete your account and all associated data at any time:</p>
                 <ul>
                   <li>In the app: <strong>Profile &rarr; Delete Account</strong></li>
-                  <li>By email: contact <a href="mailto:sandip@roostoo.com">sandip@roostoo.com</a>
+                  <li>By email: contact <a href="mailto:sayan.mondal4557@gmail.com">sayan.mondal4557@gmail.com</a>
                       from your registered email address</li>
                 </ul>
 
+                <h2>Changes to this policy</h2>
+                <p>If this policy changes, we will update the effective date above. If a
+                change is material, we will also let you know inside the app.</p>
+
                 <h2>Contact</h2>
                 <p>For any privacy questions or requests, contact Sayan Mondal at
-                <a href="mailto:sandip@roostoo.com">sandip@roostoo.com</a>.</p>
+                <a href="mailto:sayan.mondal4557@gmail.com">sayan.mondal4557@gmail.com</a>.</p>
                 """;
+        return page("MotoWrap Privacy Policy", body);
     }
 
     @GetMapping(value = "/account-deletion", produces = MediaType.TEXT_HTML_VALUE)
     public String accountDeletion() {
-        return "<title>Delete Your MotoWrap Account</title>" + STYLE + """
+        String body = """
                 <h1>Delete Your MotoWrap Account</h1>
                 <p>You can delete your MotoWrap account and all associated data in either of
                 two ways:</p>
                 <ul>
                   <li><strong>In the app:</strong> go to <strong>Profile &rarr; Delete Account</strong>.</li>
                   <li><strong>By email:</strong> send a deletion request to
-                      <a href="mailto:sandip@roostoo.com">sandip@roostoo.com</a> from the email
+                      <a href="mailto:sayan.mondal4557@gmail.com">sayan.mondal4557@gmail.com</a> from the email
                       address registered to your account.</li>
                 </ul>
-                <p>Deletion is immediate and permanently removes your profile, motorcycles,
-                rides, and all GPS location data. This cannot be undone.</p>
+                <p>Deletion removes your profile, motorcycles, rides, and all GPS location
+                data from our active database immediately and cannot be undone. Routine
+                infrastructure backups may retain a copy for a limited period before being
+                purged in the normal backup rotation.</p>
                 """;
+        return page("Delete Your MotoWrap Account", body);
     }
 }

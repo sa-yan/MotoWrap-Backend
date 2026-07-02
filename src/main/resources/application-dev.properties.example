@@ -1,0 +1,12 @@
+spring.datasource.url=jdbc:postgresql://CHANGE_ME:5432/postgres?sslmode=require
+spring.datasource.username=CHANGE_ME
+spring.datasource.password=CHANGE_ME
+spring.datasource.driverClassName=org.postgresql.Driver
+
+jwt.secret=CHANGE_ME
+
+spring.security.user.name=CHANGE_ME
+spring.security.user.password=CHANGE_ME
+
+# optional: show SQL in dev
+spring.jpa.show-sql=true

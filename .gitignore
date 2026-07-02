@@ -36,3 +36,6 @@ build/
 motowrap-frontend/node_modules/
 motowrap-frontend/.expo/
 motowrap-frontend/dist/
+
+# Secrets - never commit
+src/main/resources/application-dev.properties
